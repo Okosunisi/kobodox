@@ -103,6 +103,10 @@ function loadFonts(): Promise<Record<FontKey, FontFile>> {
         const res = await fetch(`${base}fonts/${key}.ttf`);
         if (!res.ok) throw new Error(`Could not load font ${key}`);
         const buf = await res.arrayBuffer();
+        const sig = new Uint8Array(buf.slice(0, 4));
+        const sigText = String.fromCharCode(sig[0], sig[1], sig[2], sig[3]);
+        const isFont = (sig[0] === 0 && sig[1] === 1 && sig[2] === 0 && sig[3] === 0) || sigText === 'true' || sigText === 'OTTO';
+        if (!isFont) throw new Error(`Font file ${key} is missing or invalid`);
         return [key, { base64: toBase64(buf), glyphs: readGlyphs(buf) }] as const;
       }),
     )
@@ -191,7 +195,7 @@ async function render(data: DocData, compact: boolean): Promise<{ blob: Blob; pa
   const clean = (s: string): string => {
     const glyphs = reg.glyphs;
     let out = '';
-    for (const ch of String(s ?? '').normalize('NFC').replace(/\r/g, '').replace(/ /g, ' ').replace(/\t/g, ' ')) {
+    for (const ch of String(s ?? '').normalize('NFC').replace(/\r/g, '').replace(/ /g, ' ').replace(/\t/g, ' ')) {
       const cp = ch.codePointAt(0) ?? 0;
       if (ch === '\n') out += ch;
       else if (cp < 32) continue;
