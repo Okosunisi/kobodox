@@ -1,0 +1,667 @@
+/* ---------- Fonts used inside invoices (also embedded in the PDF) ---------- */
+@font-face {
+  font-family: 'SnapSans';
+  src: url('/fonts/SnapSans-Regular.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'SnapSans';
+  src: url('/fonts/SnapSans-Bold.ttf') format('truetype');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'SnapSerif';
+  src: url('/fonts/SnapSerif-Regular.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'SnapSerif';
+  src: url('/fonts/SnapSerif-Bold.ttf') format('truetype');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* ---------- The A4 document ---------- */
+.doc {
+  --font: 'SnapSans', 'Carlito', 'Calibri', 'Segoe UI', Arial, sans-serif;
+  --name-weight: 400;
+  box-sizing: border-box;
+  width: 210mm;
+  min-height: 297mm;
+  padding: 14mm 15mm 12mm;
+  background: #fff;
+  color: var(--text);
+  font-family: var(--font);
+  font-size: 9.5pt;
+  line-height: 1.4;
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  font-variant-numeric: tabular-nums;
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+.doc *,
+.doc *::before,
+.doc *::after {
+  box-sizing: border-box;
+}
+.doc.tpl-classic {
+  --font: 'SnapSerif', 'Liberation Serif', 'Times New Roman', Times, serif;
+  --name-weight: 700;
+  font-size: 10pt;
+}
+.doc.tpl-bold {
+  --name-weight: 700;
+}
+
+.doc .pre {
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+}
+.doc .ph {
+  color: #b7bdc9;
+}
+.doc img.logo {
+  display: block;
+  max-width: 42mm;
+  max-height: 18mm;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+}
+.doc .lbl {
+  margin: 0 0 1.8mm;
+  font-size: 7pt;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.doc .badge {
+  display: inline-block;
+  padding: 0.9mm 3mm;
+  border-radius: 99px;
+  font-size: 7.5pt;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  border: 0.25mm solid currentColor;
+  line-height: 1.3;
+}
+.doc .biz-name {
+  color: var(--ink);
+  font-weight: 700;
+  line-height: 1.15;
+  overflow-wrap: anywhere;
+}
+
+/* ---------- Parties ---------- */
+.doc .parties {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10mm;
+  margin-bottom: 7mm;
+  break-inside: avoid;
+}
+.doc .party > div {
+  color: var(--text);
+}
+.doc .party .p-name {
+  color: var(--ink);
+  font-weight: 700;
+  font-size: 10.5pt;
+  margin-bottom: 0.8mm;
+}
+
+/* ---------- Waybill route strip ---------- */
+.doc .route {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  gap: 6mm;
+  align-items: center;
+  padding: 3.2mm 0;
+  margin-bottom: 7mm;
+  border-top: 0.25mm solid var(--rule);
+  border-bottom: 0.25mm solid var(--rule);
+  break-inside: avoid;
+}
+.doc .route .right {
+  text-align: right;
+}
+.doc .route-place {
+  margin-top: 0.8mm;
+  font-size: 12pt;
+  font-weight: 700;
+  color: var(--ink);
+  overflow-wrap: anywhere;
+}
+.doc .route-arrow {
+  width: 14mm;
+  height: 3.5mm;
+  color: var(--accent);
+}
+.tpl-minimal .route,
+.tpl-bold .route {
+  padding: 3.2mm 4mm;
+  border: 0;
+  border-radius: 2.5mm;
+  background: var(--soft);
+}
+
+/* ---------- Items table ---------- */
+.doc .items {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  margin-bottom: 5mm;
+  table-layout: fixed;
+}
+.doc .items thead {
+  display: table-header-group;
+}
+.doc .items tr {
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+.doc .items th {
+  padding: 2.4mm 2.5mm;
+  text-align: right;
+  font-size: 7.5pt;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink);
+}
+.doc .items td {
+  padding: 2.6mm 2.5mm;
+  text-align: right;
+  vertical-align: top;
+  color: var(--ink);
+}
+.doc .items .c-desc {
+  text-align: left;
+}
+.doc .items .c-qty {
+  width: 16mm;
+}
+.doc .items .c-price {
+  width: 33mm;
+}
+.doc .items .c-amt {
+  width: 36mm;
+}
+.doc .it-name {
+  font-weight: var(--name-weight);
+  overflow-wrap: anywhere;
+}
+.doc .it-det {
+  margin-top: 0.6mm;
+  font-size: 8.5pt;
+  color: var(--muted);
+}
+
+/* ---------- Summary (payment details + totals) ---------- */
+.doc .summary {
+  display: grid;
+  grid-template-columns: 1fr 78mm;
+  gap: 10mm;
+  align-items: start;
+  margin-bottom: 7mm;
+  break-inside: avoid;
+}
+.doc .pay dl {
+  margin: 0;
+}
+.doc .pay-row {
+  display: grid;
+  grid-template-columns: 24mm 1fr;
+  gap: 3mm;
+  padding: 0.6mm 0;
+}
+.doc .pay-row dt {
+  color: var(--muted);
+}
+.doc .pay-row dd {
+  margin: 0;
+  color: var(--ink);
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+.doc .pay-row dd.strong {
+  font-size: 11pt;
+  letter-spacing: 0.05em;
+}
+.doc .pay-note {
+  margin-top: 1.6mm;
+  font-size: 8.5pt;
+  color: var(--muted);
+}
+.doc .t-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 4mm;
+  padding: 1.3mm 0;
+  color: var(--text);
+}
+.doc .t-row .amt {
+  color: var(--ink);
+  white-space: nowrap;
+}
+
+/* ---------- Notes ---------- */
+.doc .notes {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10mm;
+  margin-bottom: 8mm;
+  font-size: 8.8pt;
+  color: var(--text);
+  break-inside: avoid;
+}
+.doc .notes.single {
+  grid-template-columns: 1fr;
+}
+
+/* ---------- Signature boxes (waybills, quotations) ---------- */
+.doc .sigs {
+  display: grid;
+  grid-template-columns: repeat(var(--cols, 2), 1fr);
+  gap: 8mm;
+  margin-bottom: 8mm;
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+.doc .sig .sig-line {
+  height: 0;
+  margin-top: 13mm;
+  border-bottom: 0.3mm solid var(--ink);
+}
+.doc .sig .sig-line.short {
+  margin-top: 7mm;
+}
+.doc .sig .sig-cap {
+  margin-top: 1mm;
+  font-size: 7.5pt;
+  color: var(--muted);
+}
+
+.doc .doc-foot {
+  margin-top: auto;
+  padding-top: 4mm;
+  border-top: 0.2mm solid var(--rule);
+  text-align: center;
+  font-size: 8pt;
+  color: var(--muted);
+}
+
+/* =====================================================================
+   CLASSIC CORPORATE
+   ===================================================================== */
+.tpl-classic .hdr {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 10mm;
+}
+.tpl-classic .brand {
+  display: flex;
+  flex-direction: column;
+  gap: 3mm;
+  min-width: 0;
+}
+.tpl-classic .biz-name {
+  font-size: 17pt;
+}
+.tpl-classic .hdr-right {
+  text-align: right;
+  flex: none;
+}
+.tpl-classic .doc-title {
+  font-size: 24pt;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  color: var(--ink);
+  line-height: 1;
+  margin-right: -0.16em;
+}
+.tpl-classic .meta {
+  margin: 4.5mm 0 3mm;
+  font-size: 9pt;
+}
+.tpl-classic .meta-row {
+  display: flex;
+  justify-content: flex-end;
+  gap: 5mm;
+  padding: 0.5mm 0;
+}
+.tpl-classic .meta dt {
+  color: var(--muted);
+}
+.tpl-classic .meta dd {
+  margin: 0;
+  min-width: 26mm;
+  text-align: right;
+  font-weight: 700;
+  color: var(--ink);
+}
+.tpl-classic .hdr-rule {
+  margin: 6mm 0 7mm;
+  height: 1.1mm;
+  border-top: 0.5mm solid var(--ink);
+  border-bottom: 0.2mm solid var(--accent);
+}
+.tpl-classic .party {
+  border-top: 0.25mm solid var(--rule);
+  padding-top: 2.5mm;
+}
+.tpl-classic .items th {
+  border-top: 0.4mm solid var(--ink);
+  border-bottom: 0.4mm solid var(--ink);
+}
+.tpl-classic .items td {
+  border-bottom: 0.2mm solid var(--rule);
+}
+.tpl-classic .pay {
+  border-top: 0.25mm solid var(--rule);
+  padding-top: 2.5mm;
+}
+.tpl-classic .t-row.grand {
+  margin-top: 2mm;
+  padding: 2.4mm 0;
+  border-top: 0.5mm solid var(--ink);
+  border-bottom: 0.5mm solid var(--ink);
+  font-size: 12pt;
+  font-weight: 700;
+  color: var(--ink);
+}
+.tpl-classic .t-row.grand .amt {
+  font-size: 13.5pt;
+}
+.tpl-classic .t-row.balance {
+  padding-top: 2.2mm;
+  font-size: 11pt;
+  font-weight: 700;
+  color: var(--accent);
+}
+.tpl-classic .t-row.balance .amt {
+  color: var(--accent);
+}
+.tpl-classic .notes > div {
+  border-top: 0.25mm solid var(--rule);
+  padding-top: 2.5mm;
+}
+
+/* =====================================================================
+   MODERN MINIMAL
+   ===================================================================== */
+.tpl-minimal .hdr {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 10mm;
+  margin-bottom: 8mm;
+}
+.tpl-minimal .brand {
+  display: flex;
+  flex-direction: column;
+  gap: 3mm;
+  min-width: 0;
+}
+.tpl-minimal .biz-name {
+  font-size: 16pt;
+}
+.tpl-minimal .doc-title {
+  flex: none;
+  font-size: 22pt;
+  font-weight: 400;
+  letter-spacing: 0.2em;
+  color: var(--muted);
+  line-height: 1;
+  margin-right: -0.2em;
+}
+.tpl-minimal .meta-strip {
+  display: grid;
+  grid-template-columns: repeat(var(--cols, 4), 1fr);
+  gap: 4mm;
+  padding: 4mm 5mm;
+  margin-bottom: 8mm;
+  background: var(--soft);
+  border-radius: 2.5mm;
+}
+.tpl-minimal .meta-strip .lbl {
+  margin-bottom: 0.8mm;
+}
+.tpl-minimal .meta-strip .val {
+  font-size: 10pt;
+  font-weight: 700;
+  color: var(--ink);
+}
+.tpl-minimal .party .lbl {
+  color: var(--accent);
+}
+.tpl-minimal .items th {
+  color: var(--muted);
+  font-size: 7pt;
+  border-bottom: 0.3mm solid var(--ink);
+  padding-left: 0;
+}
+.tpl-minimal .items th:last-child,
+.tpl-minimal .items td:last-child {
+  padding-right: 0;
+}
+.tpl-minimal .items td {
+  border-bottom: 0.2mm solid var(--rule);
+}
+.tpl-minimal .items td.c-desc,
+.tpl-minimal .items th.c-desc {
+  padding-left: 0;
+}
+.tpl-minimal .pay {
+  padding: 4mm 5mm;
+  background: var(--soft);
+  border-radius: 2.5mm;
+}
+.tpl-minimal .pay .lbl {
+  color: var(--accent);
+}
+.tpl-minimal .t-row.grand {
+  margin-top: 2mm;
+  padding: 3mm 0 0;
+  border-top: 0.25mm solid var(--rule);
+  align-items: center;
+  font-size: 9.5pt;
+  color: var(--muted);
+}
+.tpl-minimal .t-row.grand .amt {
+  font-size: 18pt;
+  font-weight: 700;
+  color: var(--accent);
+}
+.tpl-minimal .t-row.balance {
+  padding-top: 0.5mm;
+  font-weight: 700;
+  color: var(--ink);
+}
+.tpl-minimal .t-row.balance .amt {
+  font-size: 12pt;
+}
+
+/* =====================================================================
+   BOLD BUSINESS
+   ===================================================================== */
+.tpl-bold .hdr-block {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8mm;
+  padding: 7mm 8mm;
+  margin-bottom: 4mm;
+  background: var(--ink);
+  border-radius: 3mm;
+  color: #fff;
+}
+.tpl-bold .hdr-left {
+  display: flex;
+  align-items: center;
+  gap: 5mm;
+  min-width: 0;
+}
+.tpl-bold .logo-tile {
+  display: flex;
+  padding: 2mm;
+  background: #fff;
+  border-radius: 2mm;
+}
+.tpl-bold .logo-tile img.logo {
+  max-width: 30mm;
+  max-height: 14mm;
+}
+.tpl-bold .biz-name {
+  font-size: 16pt;
+  color: #fff;
+}
+.tpl-bold .hdr-right {
+  flex: none;
+  text-align: right;
+}
+.tpl-bold .doc-title {
+  font-size: 22pt;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  color: #fff;
+  line-height: 1;
+  margin-right: -0.14em;
+}
+.tpl-bold .doc-no {
+  margin-top: 2mm;
+  font-size: 10pt;
+  font-weight: 700;
+  color: #a9bdf5;
+}
+.tpl-bold .meta-cards {
+  display: grid;
+  grid-template-columns: repeat(var(--cols, 3), 1fr);
+  gap: 3mm;
+  margin-bottom: 7mm;
+}
+.tpl-bold .meta-card {
+  padding: 3mm 4mm;
+  background: var(--soft);
+  border-radius: 2.2mm;
+}
+.tpl-bold .meta-card .lbl {
+  margin-bottom: 0.6mm;
+}
+.tpl-bold .meta-card .val {
+  font-size: 10pt;
+  font-weight: 700;
+  color: var(--ink);
+}
+.tpl-bold .party {
+  padding: 3mm 4mm;
+  background: var(--soft);
+  border-left: 1.2mm solid var(--accent);
+  border-radius: 0 2.2mm 2.2mm 0;
+}
+.tpl-bold .items th {
+  background: var(--ink);
+  color: #fff;
+}
+.tpl-bold .items tbody tr:nth-child(even) {
+  background: var(--soft);
+}
+.tpl-bold .pay {
+  padding: 3mm 4mm;
+  background: var(--soft);
+  border-left: 1.2mm solid var(--accent);
+  border-radius: 0 2.2mm 2.2mm 0;
+}
+.tpl-bold .t-row.grand,
+.tpl-bold .t-row.balance {
+  align-items: center;
+  margin-top: 2mm;
+  padding: 3.2mm 4mm;
+  background: var(--ink);
+  border-radius: 2.2mm;
+  font-weight: 700;
+  font-size: 11pt;
+  color: #fff;
+}
+.tpl-bold .t-row.grand .amt,
+.tpl-bold .t-row.balance .amt {
+  color: #fff;
+  font-size: 14pt;
+}
+.tpl-bold .t-row.balance {
+  background: var(--accent);
+}
+
+/* =====================================================================
+   PRINT: only the invoice is printed, A4, repeated table headings
+   ===================================================================== */
+.print-only {
+  display: none;
+}
+
+@media print {
+  @page {
+    size: A4;
+    margin: 12mm 15mm;
+  }
+  html,
+  body {
+    background: #fff !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+  .app-shell {
+    display: none !important;
+  }
+  .print-only {
+    display: block !important;
+  }
+  .print-only .doc {
+    display: block;
+    width: auto;
+    min-height: 0;
+    padding: 0;
+    box-shadow: none;
+  }
+  .print-only .doc .doc-foot {
+    margin-top: 2mm;
+    padding-top: 2.5mm;
+  }
+  /* Waybills carry a route strip and three signature boxes, so they are scaled down a touch to stay on one page. */
+  .print-only .doc[data-kind='waybill'] {
+    zoom: 0.95;
+  }
+  /* Slightly tighter spacing on paper so short documents (quotations, waybills) stay on one page. */
+  .print-only .doc .parties,
+  .print-only .doc .route,
+  .print-only .doc .summary {
+    margin-bottom: 5mm;
+  }
+  .print-only .doc .items {
+    margin-bottom: 4mm;
+  }
+  .print-only .doc .notes {
+    margin-bottom: 5mm;
+  }
+  .print-only .doc .sigs {
+    margin-bottom: 2mm;
+  }
+  .print-only .doc .sig .sig-line {
+    margin-top: 10mm;
+  }
+  .print-only .doc .sig .sig-line.short {
+    margin-top: 5mm;
+  }
+}
