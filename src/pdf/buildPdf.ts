@@ -100,7 +100,7 @@ function loadFonts(): Promise<Record<FontKey, FontFile>> {
     const base = (import.meta as unknown as { env?: { BASE_URL?: string } }).env?.BASE_URL ?? '/';
     fontsPromise = Promise.all(
       FONT_KEYS.map(async (key) => {
-        const res = await fetch(`${base}fonts/${key}.ttf`);
+        const res = await fetch(`${base}fonts/${key}.ttf?v=2`);
         if (!res.ok) throw new Error(`Could not load font ${key}`);
         const buf = await res.arrayBuffer();
         const sig = new Uint8Array(buf.slice(0, 4));
