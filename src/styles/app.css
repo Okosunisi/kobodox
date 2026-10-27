@@ -1,5 +1,5 @@
 /* =====================================================================
-   SNAP BILL - website styles (the invoice itself is styled in doc.css)
+   KoboDox - website styles (the invoice itself is styled in doc.css)
    ===================================================================== */
 :root {
   --brand: #0b6b57;
@@ -1229,8 +1229,17 @@ textarea {
     width: 100%;
   }
   .doc-switch.segmented.small > a {
-    flex: 1 1 0;
-    padding: 0 4px;
+    flex: 0 0 auto;
+    padding: 0 12px;
     font-size: 0.82rem;
   }
+}
+
+/* Nine document types: the switcher scrolls sideways instead of squeezing. */
+.nav[aria-label='Document type'] {
+  min-width: 0;
+  flex: 0 1 auto;
+}
+.brand-link {
+  flex: none;
 }

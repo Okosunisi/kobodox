@@ -1,8 +1,9 @@
 import type { DocData } from '../types';
+import { KIND_COPY } from './kinds';
 
 /** "Invoice INV-2026-0001" style name used for the PDF file and the print title. */
 export function fileBase(d: DocData): string {
-  const kind = d.kind === 'invoice' ? 'Invoice' : d.kind === 'receipt' ? 'Receipt' : d.kind === 'quotation' ? 'Quotation' : 'Waybill';
+  const kind = KIND_COPY[d.kind].Noun;
   const num = d.number.trim() || 'draft';
   return `${kind} ${num}`.replace(/[^\w.\- ]+/g, '-').replace(/\s+/g, '-');
 }

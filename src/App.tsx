@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import type { DocKind, TemplateId } from './types';
 import { Editor } from './components/Editor';
 import { Home, SiteHeader } from './components/Home';
+import { KIND_COPY, KIND_ORDER } from './lib/kinds';
 
 interface Route {
   page: 'home' | DocKind;
@@ -12,10 +13,9 @@ function parseHash(hash: string): Route {
   const [path, query = ''] = hash.replace(/^#/, '').split('?');
   const t = new URLSearchParams(query).get('t');
   const template = t === 'classic' || t === 'minimal' || t === 'bold' ? t : undefined;
-  if (path.startsWith('/invoice')) return { page: 'invoice', template };
-  if (path.startsWith('/receipt')) return { page: 'receipt', template };
-  if (path.startsWith('/quotation')) return { page: 'quotation', template };
-  if (path.startsWith('/waybill')) return { page: 'waybill', template };
+  const segment = path.replace(/^\/+/, '').split('/')[0];
+  const kind = KIND_ORDER.find((k) => KIND_COPY[k].path === segment);
+  if (kind) return { page: kind, template };
   return { page: 'home' };
 }
 
@@ -29,19 +29,17 @@ function useRoute(): Route & { key: string } {
   return { ...parseHash(hash), key: hash };
 }
 
-const TITLES = {
-  home: 'SNAP BILL - Professional Invoices. Made Simple.',
-  invoice: 'Create an invoice - SNAP BILL',
-  receipt: 'Create a receipt - SNAP BILL',
-  quotation: 'Create a quotation - SNAP BILL',
-  waybill: 'Create a waybill - SNAP BILL',
-};
+function pageTitle(page: Route['page']): string {
+  if (page === 'home') return 'KoboDox - Professional Invoices. Made Simple.';
+  const noun = KIND_COPY[page].noun;
+  return `Create ${/^[aeiou]/.test(noun) ? 'an' : 'a'} ${noun} - KoboDox`;
+}
 
 export default function App() {
   const route = useRoute();
 
   useEffect(() => {
-    document.title = TITLES[route.page];
+    document.title = pageTitle(route.page);
     window.scrollTo(0, 0);
   }, [route.page, route.key]);
 

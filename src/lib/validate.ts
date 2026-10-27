@@ -1,6 +1,7 @@
 import type { DocData, FieldErrors } from '../types';
 import { computeTotals, isValidNumber, parseNum, toCents } from './calc';
 import { parseISO } from './dates';
+import { KIND_COPY } from './kinds';
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 const MAX_QTY = 1_000_000;
@@ -16,24 +17,17 @@ export function validate(d: DocData): FieldErrors {
   const e: FieldErrors = {};
   const isInvoice = d.kind === 'invoice';
   const isWaybill = d.kind === 'waybill';
-  const isQuote = d.kind === 'quotation';
+  const copy = KIND_COPY[d.kind];
 
   if (!d.businessName.trim()) e.businessName = isWaybill ? 'Enter the sender or business name.' : 'Enter your business name.';
-  if (!d.customerName.trim()) {
-    e.customerName = isWaybill
-      ? 'Enter the receiver name.'
-      : isInvoice || isQuote
-        ? 'Enter the customer name.'
-        : 'Enter who the payment was received from.';
-  }
-  if (!d.number.trim()) e.number = `Enter ${isWaybill ? 'a waybill' : isInvoice ? 'an invoice' : isQuote ? 'a quotation' : 'a receipt'} number.`;
+  if (!d.customerName.trim()) e.customerName = copy.partyError;
+  if (!d.number.trim()) e.number = `Enter ${/^[aeiou]/.test(copy.noun) ? 'an' : 'a'} ${copy.noun} number.`;
 
   if (!parseISO(d.issueDate)) e.issueDate = 'Pick a valid date.';
-  if (isInvoice || isQuote) {
-    const what = isQuote ? 'valid-until date' : 'due date';
-    if (!parseISO(d.dueDate)) e.dueDate = `Pick a valid ${what}.`;
+  if (copy.due) {
+    if (!parseISO(d.dueDate)) e.dueDate = `Pick a valid ${copy.due.what}.`;
     else if (parseISO(d.issueDate) && d.dueDate < d.issueDate) {
-      e.dueDate = isQuote ? 'The valid-until date cannot be before the issue date.' : 'Due date cannot be before the issue date.';
+      e.dueDate = `The ${copy.due.what} cannot be before the ${copy.dateLabel.toLowerCase()}.`;
     }
   }
 

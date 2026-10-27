@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { ArrowRight, Download, FileText, Lock, Receipt, ShieldCheck, Smartphone, Zap } from 'lucide-react';
 import type { DocKind, TemplateId } from '../types';
 import { KIND_COPY, KIND_ORDER } from '../lib/kinds';
@@ -8,11 +8,19 @@ import { InvoiceDocument } from './InvoiceDocument';
 import { ScaledPage } from './ScaledPage';
 import { Brand } from './ui';
 
+/** Every document type except the two big buttons in the hero. */
+const MORE_KINDS = KIND_ORDER.filter((k) => k !== 'invoice' && k !== 'receipt');
+
 export function SiteHeader({ current }: { current: 'home' | DocKind }) {
+  // With nine document types the switcher scrolls sideways, so keep the current one in view.
+  useEffect(() => {
+    document.querySelector('.doc-switch a[aria-current="page"]')?.scrollIntoView({ inline: 'center', block: 'nearest' });
+  }, [current]);
+
   return (
     <header className="site-header">
       <div className="container bar">
-        <a href="#/" className="brand-link" aria-label="SNAP BILL home">
+        <a href="#/" className="brand-link" aria-label="KoboDox home">
           <Brand />
         </a>
         {current === 'home' ? (
@@ -86,7 +94,14 @@ export function Home() {
                 </a>
               </div>
               <p className="more-docs">
-                Also make a <a href="#/quotation">Quotation</a> or a <a href="#/waybill">Waybill</a>.
+                Also make a{' '}
+                {MORE_KINDS.map((k, i) => (
+                  <span key={k}>
+                    <a href={`#/${KIND_COPY[k].path}`}>{KIND_COPY[k].Noun}</a>
+                    {i < MORE_KINDS.length - 2 ? ', ' : i === MORE_KINDS.length - 2 ? ' or ' : ''}
+                  </span>
+                ))}
+                .
               </p>
               <ul className="trust">
                 <li>
@@ -196,21 +211,22 @@ export function Home() {
         <div className="container foot-grid">
           <div>
             <Brand small />
-            <p className="muted">Free invoices, receipts, quotations and waybills for vendors, freelancers and small businesses.</p>
+            <p className="muted">Free invoices, receipts, quotations, orders, vouchers, credit and debit notes, and waybills for vendors, freelancers and small businesses.</p>
           </div>
           <div>
             <strong>Create</strong>
-            <a href="#/invoice">Invoice</a>
-            <a href="#/receipt">Receipt</a>
-            <a href="#/quotation">Quotation</a>
-            <a href="#/waybill">Waybill</a>
+            {KIND_ORDER.map((k) => (
+              <a key={k} href={`#/${KIND_COPY[k].path}`}>
+                {KIND_COPY[k].Noun}
+              </a>
+            ))}
           </div>
           <div>
             <strong>Privacy</strong>
             <p className="muted">Everything is made in your browser. We don't collect, store or send your business or customer details.</p>
           </div>
         </div>
-        <div className="container foot-base">© {new Date().getFullYear()} SNAP BILL. Made for small businesses.</div>
+        <div className="container foot-base">© {new Date().getFullYear()} KoboDox. Made for small businesses.</div>
       </footer>
     </div>
   );

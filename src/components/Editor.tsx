@@ -303,11 +303,11 @@ export function Editor({ kind, template }: { kind: DocKind; template?: TemplateI
               </div>
               <div className="grid-2">
                 <Input label={copy.dateLabel} type="date" required value={data.issueDate} onChange={(v) => set('issueDate', v)} error={shown.issueDate} />
-                {(isInvoice || isQuote) && (
-                  <Input label={isQuote ? 'Valid until' : 'Due date'} type="date" required value={data.dueDate} onChange={(v) => set('dueDate', v)} error={shown.dueDate} />
+                {copy.due && (
+                  <Input label={copy.due.label} type="date" required value={data.dueDate} onChange={(v) => set('dueDate', v)} error={shown.dueDate} />
                 )}
                 {isWaybill && <Input label="Expected delivery (optional)" type="date" value={data.expectedDate} onChange={(v) => set('expectedDate', v)} error={shown.expectedDate} />}
-                {isReceipt && (
+                {copy.payMethod && (
                   <Select
                     label="Payment method"
                     value={data.paymentMethod}
@@ -322,7 +322,8 @@ export function Editor({ kind, template }: { kind: DocKind; template?: TemplateI
                   <Input label="To (delivery town / city)" required value={data.destination} onChange={(v) => set('destination', v)} error={shown.destination} placeholder="e.g. Lagos" />
                 </div>
               )}
-              {isReceipt && <Input label="Payment reference (optional)" value={data.reference} onChange={(v) => set('reference', v)} placeholder="e.g. transfer reference or invoice number" />}
+              {copy.reference && <Input label={copy.reference.label} value={data.reference} onChange={(v) => set('reference', v)} placeholder={copy.reference.placeholder} />}
+              {copy.reason && <Input label={copy.reason.label} value={data.reason} onChange={(v) => set('reason', v)} placeholder={copy.reason.placeholder} />}
               <Select label="Currency" value={data.currency} onChange={(v) => set('currency', v)} options={CURRENCIES.map((c) => ({ value: c.code, label: `${c.code} - ${c.name}` }))} />
             </section>
 
@@ -478,12 +479,19 @@ export function Editor({ kind, template }: { kind: DocKind; template?: TemplateI
               </section>
             )}
 
-            {(isInvoice || isQuote) && (
+            {copy.payBlock !== 'none' && (
               <section className="card">
                 <h2 className="card-title">
-                  <span className="step">{nextStep()}</span> {isInvoice ? 'Payment' : 'Payment details (optional)'}
+                  <span className="step">{nextStep()}</span>{' '}
+                  {copy.payBlock === 'invoice'
+                    ? 'Payment'
+                    : copy.payBlock === 'payee'
+                      ? 'Payee bank details (optional)'
+                      : copy.payBlock === 'terms'
+                        ? 'Payment terms (optional)'
+                        : 'Payment details (optional)'}
                 </h2>
-                {isInvoice && (
+                {copy.payBlock === 'invoice' && (
                   <>
                     <span className="label-like">Payment status</span>
                     <Segmented
@@ -504,27 +512,47 @@ export function Editor({ kind, template }: { kind: DocKind; template?: TemplateI
                     )}
                   </>
                 )}
-                <div className="grid-2">
-                  <Input label="Bank name" value={data.bankName} onChange={(v) => set('bankName', v)} placeholder="e.g. Zenith Bank" />
-                  <Input label="Account name" value={data.accountName} onChange={(v) => set('accountName', v)} />
-                </div>
-                <Input label="Account number" inputMode="numeric" value={data.accountNumber} onChange={(v) => set('accountNumber', v)} placeholder="10 digits" />
-                <Textarea label="Payment instructions" rows={2} value={data.paymentInstructions} onChange={(v) => set('paymentInstructions', v)} placeholder={isQuote ? 'e.g. Pay the deposit into this account to confirm the order.' : 'e.g. Please use the invoice number as your transfer reference.'} />
+                {copy.payBlock !== 'terms' && (
+                  <>
+                    <div className="grid-2">
+                      <Input label="Bank name" value={data.bankName} onChange={(v) => set('bankName', v)} placeholder="e.g. Zenith Bank" />
+                      <Input label="Account name" value={data.accountName} onChange={(v) => set('accountName', v)} />
+                    </div>
+                    <Input label="Account number" inputMode="numeric" value={data.accountNumber} onChange={(v) => set('accountNumber', v)} placeholder="10 digits" />
+                  </>
+                )}
+                {copy.payBlock !== 'payee' && (
+                  <Textarea
+                    label={copy.payBlock === 'terms' ? 'Payment terms' : 'Payment instructions'}
+                    rows={2}
+                    value={data.paymentInstructions}
+                    onChange={(v) => set('paymentInstructions', v)}
+                    placeholder={
+                      copy.payBlock === 'terms'
+                        ? 'e.g. Payment within 30 days of delivery.'
+                        : isInvoice
+                          ? 'e.g. Please use the invoice number as your transfer reference.'
+                          : kind === 'debit-note'
+                            ? 'e.g. Please use the debit note number as your transfer reference.'
+                            : 'e.g. Pay the deposit into this account to confirm the order.'
+                    }
+                  />
+                )}
               </section>
             )}
 
             <section className="card">
               <h2 className="card-title">
-                <span className="step">{nextStep()}</span> {isReceipt ? 'Notes' : isWaybill ? 'Instructions & terms' : 'Notes & terms'}
+                <span className="step">{nextStep()}</span> {!copy.hasTerms ? 'Notes' : isWaybill ? 'Instructions & terms' : 'Notes & terms'}
               </h2>
               <Textarea
                 label={isWaybill ? 'Special instructions' : 'Notes'}
                 rows={3}
                 value={data.notes}
                 onChange={(v) => set('notes', v)}
-                placeholder={isWaybill ? 'e.g. Call the receiver before arrival. Handle with care.' : 'A thank-you message or anything the customer should know.'}
+                placeholder={copy.notesPlaceholder}
               />
-              {!isReceipt && (
+              {copy.hasTerms && (
                 <Textarea
                   label="Terms & conditions"
                   rows={3}

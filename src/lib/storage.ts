@@ -1,14 +1,15 @@
 import type { DocData, DocKind, ExtraCharge, LineItem } from '../types';
 import { DEFAULT_CURRENCY } from './currency';
 import { addDays, todayISO } from './dates';
+import { KIND_COPY, KIND_ORDER } from './kinds';
 
 /**
  * Everything here stays on the person's own device (localStorage). Nothing is ever sent anywhere.
  * Every access is wrapped in try/catch because storage can be blocked (private mode, full disk, etc.).
  */
 
-const DRAFT_KEY = (k: DocKind) => `snapbill:draft:v1:${k}`;
-const COUNTER_KEY = 'snapbill:counter:v1';
+const DRAFT_KEY = (k: DocKind) => `kobodox:draft:v1:${k}`;
+const COUNTER_KEY = 'kobodox:counter:v1';
 
 export function uid(): string {
   try {
@@ -30,21 +31,22 @@ export function newCharge(partial: Partial<ExtraCharge> = {}): ExtraCharge {
 type Counters = Record<DocKind, number>;
 
 function readCounters(): Counters {
+  const counters = {} as Counters;
+  KIND_ORDER.forEach((k) => {
+    counters[k] = 0;
+  });
   try {
     const raw = localStorage.getItem(COUNTER_KEY);
     if (raw) {
       const p = JSON.parse(raw) as Partial<Counters>;
-      return {
-        invoice: Number(p.invoice) || 0,
-        receipt: Number(p.receipt) || 0,
-        quotation: Number(p.quotation) || 0,
-        waybill: Number(p.waybill) || 0,
-      };
+      KIND_ORDER.forEach((k) => {
+        counters[k] = Number(p[k]) || 0;
+      });
     }
   } catch {
     /* ignore */
   }
-  return { invoice: 0, receipt: 0, quotation: 0, waybill: 0 };
+  return counters;
 }
 
 function writeCounters(c: Counters): void {
@@ -56,7 +58,7 @@ function writeCounters(c: Counters): void {
 }
 
 function formatNumber(kind: DocKind, n: number): string {
-  const prefix = kind === 'invoice' ? 'INV' : kind === 'receipt' ? 'RCT' : kind === 'quotation' ? 'QTN' : 'WB';
+  const prefix = KIND_COPY[kind].prefix;
   return `${prefix}-${new Date().getFullYear()}-${String(n).padStart(4, '0')}`;
 }
 
@@ -80,6 +82,19 @@ export const WAYBILL_TERMS =
 export const QUOTATION_TERMS =
   'This quotation is valid until the date shown above. Prices may change after that date. Work begins once the quotation is accepted and any agreed deposit is received.';
 
+export const SALES_ORDER_TERMS =
+  'Goods will be delivered on or before the delivery date shown above. Prices are fixed once the order is confirmed.';
+
+export const PURCHASE_ORDER_TERMS =
+  'Goods must match the description, quantity and price on this order. Please quote the order number on your delivery note and invoice.';
+
+const DEFAULT_TERMS: Partial<Record<DocKind, string>> = {
+  waybill: WAYBILL_TERMS,
+  quotation: QUOTATION_TERMS,
+  'sales-order': SALES_ORDER_TERMS,
+  'purchase-order': PURCHASE_ORDER_TERMS,
+};
+
 export function createDefaultDoc(kind: DocKind): DocData {
   const today = todayISO();
   return {
@@ -96,7 +111,7 @@ export function createDefaultDoc(kind: DocKind): DocData {
     customerAddress: '',
     number: peekNumber(kind),
     issueDate: today,
-    dueDate: addDays(today, kind === 'quotation' ? 30 : 14),
+    dueDate: addDays(today, KIND_COPY[kind].due?.days ?? 14),
     currency: DEFAULT_CURRENCY,
     items: [newItem(kind === 'waybill' ? { unit: 'pcs' } : {})],
     discountMode: 'percent',
@@ -108,12 +123,13 @@ export function createDefaultDoc(kind: DocKind): DocData {
     amountPaid: '',
     paymentMethod: 'Bank transfer',
     reference: '',
+    reason: '',
     bankName: '',
     accountName: '',
     accountNumber: '',
     paymentInstructions: '',
     notes: '',
-    terms: kind === 'waybill' ? WAYBILL_TERMS : kind === 'quotation' ? QUOTATION_TERMS : '',
+    terms: DEFAULT_TERMS[kind] ?? '',
     origin: '',
     destination: '',
     transportMode: 'Road',
@@ -162,9 +178,8 @@ export function clearDraft(kind: DocKind): void {
 /** A brand-new document that re-uses the business details from another kind's saved draft. */
 export function createSeededDoc(kind: DocKind): DocData {
   const base = createDefaultDoc(kind);
-  const kinds: DocKind[] = ['invoice', 'receipt', 'quotation', 'waybill'];
   let other: DocData | null = null;
-  for (const k of kinds) {
+  for (const k of KIND_ORDER) {
     if (k === kind) continue;
     other = loadDraft(k);
     if (other) break;
