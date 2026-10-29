@@ -2,12 +2,12 @@ export type DocKind =
   | 'invoice'
   | 'receipt'
   | 'quotation'
-  | 'sales-order'
+  | 'waybill'
   | 'purchase-order'
   | 'payment-voucher'
   | 'credit-note'
   | 'debit-note'
-  | 'waybill';
+  | 'sales-order';
 export type TemplateId = 'classic' | 'minimal' | 'bold';
 export type PaymentStatus = 'paid' | 'unpaid' | 'partial';
 export type AdjustMode = 'percent' | 'fixed';
@@ -72,8 +72,7 @@ export interface DocData {
   amountPaid: string;
 
   paymentMethod: string; // receipts
-  reference: string; // receipts, vouchers, and the related invoice on credit/debit notes
-  reason: string; // credit and debit notes
+  reference: string; // receipts
 
   bankName: string;
   accountName: string;

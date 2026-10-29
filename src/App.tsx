@@ -2,10 +2,11 @@ import { useEffect, useState } from 'react';
 import type { DocKind, TemplateId } from './types';
 import { Editor } from './components/Editor';
 import { Home, SiteHeader } from './components/Home';
+import { Reports, Sales } from './components/Books';
 import { KIND_COPY, KIND_ORDER } from './lib/kinds';
 
 interface Route {
-  page: 'home' | DocKind;
+  page: 'home' | 'sales' | 'reports' | DocKind;
   template?: TemplateId;
 }
 
@@ -13,8 +14,9 @@ function parseHash(hash: string): Route {
   const [path, query = ''] = hash.replace(/^#/, '').split('?');
   const t = new URLSearchParams(query).get('t');
   const template = t === 'classic' || t === 'minimal' || t === 'bold' ? t : undefined;
-  const segment = path.replace(/^\/+/, '').split('/')[0];
-  const kind = KIND_ORDER.find((k) => KIND_COPY[k].path === segment);
+  if (path === '/sales') return { page: 'sales' };
+  if (path === '/reports') return { page: 'reports' };
+  const kind = KIND_ORDER.find((k) => path.startsWith(`/${KIND_COPY[k].path}`));
   if (kind) return { page: kind, template };
   return { page: 'home' };
 }
@@ -29,11 +31,9 @@ function useRoute(): Route & { key: string } {
   return { ...parseHash(hash), key: hash };
 }
 
-function pageTitle(page: Route['page']): string {
-  if (page === 'home') return 'KoboDox - Professional Invoices. Made Simple.';
-  const noun = KIND_COPY[page].noun;
-  return `Create ${/^[aeiou]/.test(noun) ? 'an' : 'a'} ${noun} - KoboDox`;
-}
+const homeTitle = 'KoboDox - Simple Bookkeeping for Business Owners';
+const pageTitle = (page: Route['page']) =>
+  page === 'home' ? homeTitle : page === 'sales' ? 'Sales Management - KoboDox' : page === 'reports' ? 'Business Reports - KoboDox' : `Create a ${KIND_COPY[page].noun} - KoboDox`;
 
 export default function App() {
   const route = useRoute();
@@ -44,6 +44,16 @@ export default function App() {
   }, [route.page, route.key]);
 
   if (route.page === 'home') return <Home />;
+  if (route.page === 'sales' || route.page === 'reports') {
+    return (
+      <>
+        <div className="app-shell top-shell">
+          <SiteHeader current={route.page} />
+        </div>
+        {route.page === 'sales' ? <Sales /> : <Reports />}
+      </>
+    );
+  }
 
   return (
     <>

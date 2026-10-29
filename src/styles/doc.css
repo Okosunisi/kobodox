@@ -666,11 +666,14 @@
   }
 }
 
-/* Long titles (PURCHASE ORDER, PAYMENT VOUCHER) are set a little smaller. */
-.doc.long-title.tpl-classic .doc-title {
-  font-size: 18.5pt;
-}
-.doc.long-title.tpl-minimal .doc-title,
-.doc.long-title.tpl-bold .doc-title {
+/* Longer titles (PURCHASE ORDER, PAYMENT VOUCHER...) are set a little smaller so they fit the header. */
+.tpl-classic[data-longtitle] .doc-title {
   font-size: 17pt;
+}
+.tpl-minimal[data-longtitle] .doc-title,
+.tpl-bold[data-longtitle] .doc-title {
+  font-size: 16pt;
+}
+.doc[data-longtitle] .doc-title {
+  white-space: nowrap;
 }

@@ -10,7 +10,7 @@ export interface PayRow {
 }
 
 export interface DocModel {
-  title: 'INVOICE' | 'RECEIPT' | 'QUOTATION' | 'SALES ORDER' | 'PURCHASE ORDER' | 'PAYMENT VOUCHER' | 'CREDIT NOTE' | 'DEBIT NOTE' | 'WAYBILL';
+  title: string;
   /** Label/value pairs shown in the header. The first one is always the document number. */
   fields: Array<[string, string]>;
   /** null = this kind of document has no status badge (quotations). */
@@ -119,15 +119,7 @@ export function buildModel(d: DocData): DocModel {
     };
   }
 
-  if (
-    d.kind === 'sales-order' ||
-    d.kind === 'purchase-order' ||
-    d.kind === 'payment-voucher' ||
-    d.kind === 'credit-note' ||
-    d.kind === 'debit-note'
-  ) {
-    return buildOtherModel(d, issue);
-  }
+  if (d.kind !== 'invoice' && d.kind !== 'receipt') return buildOtherModel(d, issue);
 
   const isInvoice = d.kind === 'invoice';
 
@@ -194,109 +186,95 @@ function bankRows(d: DocData): PayRow[] {
   return rows;
 }
 
-/** Sales orders, purchase orders, payment vouchers, credit notes and debit notes. */
+/** Purchase orders, payment vouchers, credit notes, debit notes and sales orders. */
 function buildOtherModel(d: DocData, issue: string): DocModel {
-  const common = {
+  const ref = d.reference.trim();
+  const note = d.paymentInstructions.trim();
+  const base = {
     statusKey: null,
     statusText: '',
-    route: null,
+    fromLabel: 'From',
     columns: ['Qty', 'Unit price', 'Amount'] as [string, string, string],
+    route: null,
+    pay: null as DocModel['pay'],
     notesLabel: 'Notes',
     notes: d.notes.trim(),
     terms: d.terms.trim(),
+    signatures: [] as string[],
   };
-  const note = d.paymentInstructions.trim();
-  const invoiceRef: PayRow[] = d.reference.trim() ? [{ label: 'Invoice ref.', value: d.reference.trim() }] : [];
-  const reasonRow: PayRow[] = d.reason.trim() ? [{ label: 'Reason', value: d.reason.trim() }] : [];
 
   switch (d.kind) {
-    case 'sales-order': {
-      const rows = bankRows(d);
-      return {
-        ...common,
-        title: 'SALES ORDER',
-        fields: [
-          ['Order no.', dash(d.number)],
-          ['Order date', issue],
-          ['Delivery date', dash(formatDate(d.dueDate))],
-        ],
-        fromLabel: 'From',
-        toLabel: 'Customer',
-        toPlaceholder: 'Customer name',
-        pay: rows.length || note ? { title: 'Payment details', rows, note } : null,
-        signatures: ['Prepared by', 'Customer approval'],
-        footer: 'Thank you for your order.',
-      };
-    }
     case 'purchase-order':
       return {
-        ...common,
+        ...base,
         title: 'PURCHASE ORDER',
         fields: [
-          ['Order no.', dash(d.number)],
+          ['PO no.', dash(d.number)],
           ['Order date', issue],
           ['Delivery date', dash(formatDate(d.dueDate))],
         ],
         fromLabel: 'Buyer',
         toLabel: 'Supplier',
         toPlaceholder: 'Supplier name',
-        pay: note ? { title: 'Payment terms', rows: [], note } : null,
-        signatures: ['Authorised by', 'Supplier acknowledgement'],
-        footer: 'Please confirm that you received this order.',
+        pay: note ? { title: 'Delivery details', rows: [], note } : null,
+        signatures: ['Authorised by', 'Accepted by supplier'],
+        footer: 'Please confirm receipt of this order.',
       };
     case 'payment-voucher': {
       const rows: PayRow[] = [{ label: 'Method', value: dash(d.paymentMethod) }];
-      if (d.reference.trim()) rows.push({ label: 'Reference', value: d.reference.trim() });
+      if (ref) rows.push({ label: 'Reference', value: ref });
       rows.push(...bankRows(d));
       return {
-        ...common,
+        ...base,
         title: 'PAYMENT VOUCHER',
         fields: [
           ['Voucher no.', dash(d.number)],
-          ['Date', issue],
+          ['Payment date', issue],
         ],
         fromLabel: 'Paid by',
-        toLabel: 'Pay to',
-        toPlaceholder: 'Payee name',
+        toLabel: 'Paid to',
+        toPlaceholder: 'Name of payee',
         pay: { title: 'Payment details', rows, note: '' },
-        signatures: ['Prepared by', 'Approved by', 'Received by (payee)'],
-        footer: 'Keep this voucher for your records.',
+        notesLabel: 'Purpose of payment',
+        terms: '',
+        signatures: ['Prepared by', 'Approved by', 'Received by'],
+        footer: 'Payment authorised and recorded.',
       };
     }
-    case 'credit-note': {
-      const rows = [...invoiceRef, ...reasonRow];
+    case 'credit-note':
+    case 'debit-note': {
+      const credit = d.kind === 'credit-note';
+      const fields: Array<[string, string]> = [
+        [credit ? 'Credit note no.' : 'Debit note no.', dash(d.number)],
+        ['Date', issue],
+      ];
+      if (ref) fields.push(['Against invoice', ref]);
       return {
-        ...common,
-        title: 'CREDIT NOTE',
-        fields: [
-          ['Credit note no.', dash(d.number)],
-          ['Issue date', issue],
-        ],
-        fromLabel: 'From',
-        toLabel: 'Credit to',
+        ...base,
+        title: credit ? 'CREDIT NOTE' : 'DEBIT NOTE',
+        fields,
+        toLabel: credit ? 'Credit to' : 'Debit to',
         toPlaceholder: 'Customer name',
-        pay: rows.length ? { title: 'Credit details', rows, note: '' } : null,
-        signatures: [],
-        footer: 'This credit will be applied to your account.',
+        notesLabel: credit ? 'Reason for credit' : 'Reason for debit',
+        footer: credit ? 'This credit reduces the amount owed on your account.' : 'This debit adds to the amount owed on your account.',
       };
     }
     default: {
-      // debit note
-      const rows = [...invoiceRef, ...reasonRow, ...bankRows(d)];
+      // sales-order
+      const rows = bankRows(d);
       return {
-        ...common,
-        title: 'DEBIT NOTE',
+        ...base,
+        title: 'SALES ORDER',
         fields: [
-          ['Debit note no.', dash(d.number)],
-          ['Issue date', issue],
-          ['Due date', dash(formatDate(d.dueDate))],
+          ['Order no.', dash(d.number)],
+          ['Order date', issue],
+          ['Delivery date', dash(formatDate(d.dueDate))],
         ],
-        fromLabel: 'From',
-        toLabel: 'Debit to',
+        toLabel: 'Sold to',
         toPlaceholder: 'Customer name',
         pay: rows.length || note ? { title: 'Payment details', rows, note } : null,
-        signatures: [],
-        footer: 'Please pay by the due date shown above.',
+        signatures: ['Prepared by', 'Accepted by customer'],
+        footer: 'Thank you for your order.',
       };
     }
   }

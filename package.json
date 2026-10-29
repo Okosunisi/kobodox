@@ -2,7 +2,7 @@
   "name": "kobodox",
   "private": true,
   "version": "1.0.0",
-  "description": "KoboDox - free, private invoice, receipt, quotation, order, voucher, credit and debit note and waybill generator that runs entirely in the browser.",
+  "description": "KoboDox - simple bookkeeping and record-keeping for small and large business owners.",
   "type": "module",
   "scripts": {
     "dev": "vite",

@@ -169,8 +169,6 @@ async function render(data: DocData, compact: boolean): Promise<{ blob: Blob; pa
   const cur = data.currency;
   const money = (cents: number) => formatMoney(cents, cur);
   const bodyPt = data.template === 'classic' ? 10 : 9.5;
-  /** Long titles (PURCHASE ORDER, PAYMENT VOUCHER) are set a little smaller so they never crowd the business name. */
-  const longTitle = model.title.length > 11;
 
   const doc = new jsPDF({ unit: 'mm', format: 'a4', orientation: 'portrait', compress: true });
   doc.setLineHeightFactor(LH);
@@ -359,9 +357,9 @@ async function render(data: DocData, compact: boolean): Promise<{ blob: Blob; pa
     return h;
   };
 
+  const TS = model.title.length > 9 ? 0.7 : 1; // long titles are set smaller so they fit the header
   if (data.template === 'classic') {
-    const tPt = longTitle ? 18.5 : 24;
-    const rightW = Math.max(62, spacedWidth(model.title, tPt, true, 0.16 * tPt * PT));
+    const rightW = Math.max(62, spacedWidth(model.title, 24 * TS, true, 0.16 * 24 * TS * PT) + 2);
     const leftW = CW - rightW - 10;
     // left: logo + name
     let ly = TOP;
@@ -376,8 +374,8 @@ async function render(data: DocData, compact: boolean): Promise<{ blob: Blob; pa
 
     // right: title, meta, badge
     let ry = TOP;
-    putSpaced(model.title, ML + CW, ry, { pt: tPt, bold: true, color: theme.ink, align: 'right', spacing: 0.16 * tPt * PT, boxH: tPt * PT });
-    ry += tPt * PT + 4.5;
+    putSpaced(model.title, ML + CW, ry, { pt: 24 * TS, bold: true, color: theme.ink, align: 'right', spacing: 0.16 * 24 * TS * PT, boxH: 24 * TS * PT });
+    ry += 24 * TS * PT + 4.5;
     model.fields.forEach(([k, v]) => {
       const rowH = lh(9);
       const ddW = Math.max(26, tw(clean(v), 9, true));
@@ -395,8 +393,7 @@ async function render(data: DocData, compact: boolean): Promise<{ blob: Blob; pa
     hline(ML, ML + CW, y + 1.0, theme.accent, 0.2);
     y += 1.1 + G(7);
   } else if (data.template === 'minimal') {
-    const tPt = longTitle ? 17 : 22;
-    const titleW = spacedWidth(model.title, tPt, false, 0.2 * tPt * PT) + 4;
+    const titleW = spacedWidth(model.title, 22 * TS, false, 0.2 * 22 * TS * PT) + 4;
     const leftW = CW - titleW - 10;
     let ly = TOP;
     const lg = logoSize(42, 18);
@@ -407,8 +404,8 @@ async function render(data: DocData, compact: boolean): Promise<{ blob: Blob; pa
     const nameLines = wrap(bizText, leftW, 16, true);
     nameLines.forEach((line, i) => put(line, ML, ly + i * 16 * PT * 1.15, { pt: 16, bold: true, color: bizColor(), boxH: 16 * PT * 1.15 }));
     ly += nameLines.length * 16 * PT * 1.15;
-    putSpaced(model.title, ML + CW, TOP, { pt: tPt, color: theme.muted, align: 'right', spacing: 0.2 * tPt * PT, boxH: tPt * PT });
-    y = Math.max(ly, TOP + tPt * PT) + G(8);
+    putSpaced(model.title, ML + CW, TOP, { pt: 22 * TS, color: theme.muted, align: 'right', spacing: 0.2 * 22 * TS * PT, boxH: 22 * TS * PT });
+    y = Math.max(ly, TOP + 22 * TS * PT) + G(8);
 
     const cells: Array<[string, string, string]> = [
       ...model.fields.map(([k, v]) => [k, v, theme.ink] as [string, string, string]),
@@ -428,12 +425,11 @@ async function render(data: DocData, compact: boolean): Promise<{ blob: Blob; pa
     // bold
     const padX = 8;
     const padY = 7;
-    const tPt = longTitle ? 17 : 22;
-    const rightBlockH = tPt * PT + 2 + lh(10);
+    const rightBlockH = 22 * TS * PT + 2 + lh(10);
     const tile = logoSize(30, 14);
     const tileW = tile ? tile.w + 4 : 0;
     const tileH = tile ? tile.h + 4 : 0;
-    const titleW = spacedWidth(model.title, tPt, true, 0.14 * tPt * PT);
+    const titleW = spacedWidth(model.title, 22 * TS, true, 0.14 * 22 * TS * PT);
     const noW = tw(clean(model.fields[0][1]), 10, true);
     const rightW = Math.max(titleW, noW);
     const nameW = CW - padX * 2 - rightW - 8 - (tile ? tileW + 5 : 0);
@@ -454,8 +450,8 @@ async function render(data: DocData, compact: boolean): Promise<{ blob: Blob; pa
     nameLines.forEach((line, i) => put(line, lx, ny + i * 16 * PT * 1.15, { pt: 16, bold: true, color: '#ffffff', boxH: 16 * PT * 1.15 }));
 
     const ryTop = y + padY + (inner - rightBlockH) / 2;
-    putSpaced(model.title, ML + CW - padX, ryTop, { pt: tPt, bold: true, color: '#ffffff', align: 'right', spacing: 0.14 * tPt * PT, boxH: tPt * PT });
-    put(model.fields[0][1], ML + CW - padX, ryTop + tPt * PT + 2, { pt: 10, bold: true, color: '#a9bdf5', align: 'right' });
+    putSpaced(model.title, ML + CW - padX, ryTop, { pt: 22 * TS, bold: true, color: '#ffffff', align: 'right', spacing: 0.14 * 22 * TS * PT, boxH: 22 * TS * PT });
+    put(model.fields[0][1], ML + CW - padX, ryTop + 22 * TS * PT + 2, { pt: 10, bold: true, color: '#a9bdf5', align: 'right' });
     y += blockH + 4;
 
     const cards: Array<[string, string, string]> = [

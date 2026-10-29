@@ -24,7 +24,7 @@ import { computeTotals, lineTotal } from '../lib/calc';
 import { CURRENCIES, formatMoney } from '../lib/currency';
 import { FREIGHT_PAYER_OPTIONS, SHIPMENT_STATUS_OPTIONS } from '../lib/docModel';
 import { fileBase, fileName, saveBlob } from '../lib/files';
-import { KIND_COPY } from '../lib/kinds';
+import { DUE_LABEL, KIND_COPY, TOTAL_LABEL } from '../lib/kinds';
 import { processLogoFile } from '../lib/logo';
 import { sampleDoc } from '../lib/sample';
 import { canShareFiles, defaultMessage, whatsappLink, whatsappNumber } from '../lib/share';
@@ -48,7 +48,14 @@ export function Editor({ kind, template }: { kind: DocKind; template?: TemplateI
   const isReceipt = kind === 'receipt';
   const isQuote = kind === 'quotation';
   const isWaybill = kind === 'waybill';
+  const isPO = kind === 'purchase-order';
+  const isVoucher = kind === 'payment-voucher';
+  const isNote = kind === 'credit-note' || kind === 'debit-note';
+  const isSO = kind === 'sales-order';
   const priced = !isWaybill; // waybills list goods, not prices
+  const dueLabel = DUE_LABEL[kind]; // invoices, quotations and orders show a second date
+  const hasRef = isReceipt || isVoucher || isNote;
+  const hasPayCard = isInvoice || isQuote || isSO || isPO || isVoucher;
   const copy = KIND_COPY[kind];
   const [data, setData] = useState<DocData>(() => initialDoc(kind, template));
   const [attempted, setAttempted] = useState(false);
@@ -303,11 +310,11 @@ export function Editor({ kind, template }: { kind: DocKind; template?: TemplateI
               </div>
               <div className="grid-2">
                 <Input label={copy.dateLabel} type="date" required value={data.issueDate} onChange={(v) => set('issueDate', v)} error={shown.issueDate} />
-                {copy.due && (
-                  <Input label={copy.due.label} type="date" required value={data.dueDate} onChange={(v) => set('dueDate', v)} error={shown.dueDate} />
+                {dueLabel && (
+                  <Input label={dueLabel} type="date" required value={data.dueDate} onChange={(v) => set('dueDate', v)} error={shown.dueDate} />
                 )}
                 {isWaybill && <Input label="Expected delivery (optional)" type="date" value={data.expectedDate} onChange={(v) => set('expectedDate', v)} error={shown.expectedDate} />}
-                {copy.payMethod && (
+                {(isReceipt || isVoucher) && (
                   <Select
                     label="Payment method"
                     value={data.paymentMethod}
@@ -322,8 +329,14 @@ export function Editor({ kind, template }: { kind: DocKind; template?: TemplateI
                   <Input label="To (delivery town / city)" required value={data.destination} onChange={(v) => set('destination', v)} error={shown.destination} placeholder="e.g. Lagos" />
                 </div>
               )}
-              {copy.reference && <Input label={copy.reference.label} value={data.reference} onChange={(v) => set('reference', v)} placeholder={copy.reference.placeholder} />}
-              {copy.reason && <Input label={copy.reason.label} value={data.reason} onChange={(v) => set('reason', v)} placeholder={copy.reason.placeholder} />}
+              {hasRef && (
+                <Input
+                  label={copy.refLabel ?? 'Payment reference (optional)'}
+                  value={data.reference}
+                  onChange={(v) => set('reference', v)}
+                  placeholder={copy.refPlaceholder ?? 'e.g. transfer reference or invoice number'}
+                />
+              )}
               <Select label="Currency" value={data.currency} onChange={(v) => set('currency', v)} options={CURRENCIES.map((c) => ({ value: c.code, label: `${c.code} - ${c.name}` }))} />
             </section>
 
@@ -479,19 +492,12 @@ export function Editor({ kind, template }: { kind: DocKind; template?: TemplateI
               </section>
             )}
 
-            {copy.payBlock !== 'none' && (
+            {hasPayCard && (
               <section className="card">
                 <h2 className="card-title">
-                  <span className="step">{nextStep()}</span>{' '}
-                  {copy.payBlock === 'invoice'
-                    ? 'Payment'
-                    : copy.payBlock === 'payee'
-                      ? 'Payee bank details (optional)'
-                      : copy.payBlock === 'terms'
-                        ? 'Payment terms (optional)'
-                        : 'Payment details (optional)'}
+                  <span className="step">{nextStep()}</span> {isInvoice ? 'Payment' : isPO ? 'Delivery details (optional)' : isVoucher ? 'Payee bank details (optional)' : 'Payment details (optional)'}
                 </h2>
-                {copy.payBlock === 'invoice' && (
+                {isInvoice && (
                   <>
                     <span className="label-like">Payment status</span>
                     <Segmented
@@ -512,7 +518,7 @@ export function Editor({ kind, template }: { kind: DocKind; template?: TemplateI
                     )}
                   </>
                 )}
-                {copy.payBlock !== 'terms' && (
+                {!isPO && (
                   <>
                     <div className="grid-2">
                       <Input label="Bank name" value={data.bankName} onChange={(v) => set('bankName', v)} placeholder="e.g. Zenith Bank" />
@@ -521,38 +527,24 @@ export function Editor({ kind, template }: { kind: DocKind; template?: TemplateI
                     <Input label="Account number" inputMode="numeric" value={data.accountNumber} onChange={(v) => set('accountNumber', v)} placeholder="10 digits" />
                   </>
                 )}
-                {copy.payBlock !== 'payee' && (
-                  <Textarea
-                    label={copy.payBlock === 'terms' ? 'Payment terms' : 'Payment instructions'}
-                    rows={2}
-                    value={data.paymentInstructions}
-                    onChange={(v) => set('paymentInstructions', v)}
-                    placeholder={
-                      copy.payBlock === 'terms'
-                        ? 'e.g. Payment within 30 days of delivery.'
-                        : isInvoice
-                          ? 'e.g. Please use the invoice number as your transfer reference.'
-                          : kind === 'debit-note'
-                            ? 'e.g. Please use the debit note number as your transfer reference.'
-                            : 'e.g. Pay the deposit into this account to confirm the order.'
-                    }
-                  />
+                {!isVoucher && (
+                <Textarea label={isPO ? 'Delivery address & instructions' : 'Payment instructions'} rows={2} value={data.paymentInstructions} onChange={(v) => set('paymentInstructions', v)} placeholder={isPO ? 'e.g. Deliver to our workshop. Call before arrival.' : isQuote ? 'e.g. Pay the deposit into this account to confirm the order.' : 'e.g. Please use the invoice number as your transfer reference.'} />
                 )}
               </section>
             )}
 
             <section className="card">
               <h2 className="card-title">
-                <span className="step">{nextStep()}</span> {!copy.hasTerms ? 'Notes' : isWaybill ? 'Instructions & terms' : 'Notes & terms'}
+                <span className="step">{nextStep()}</span> {isReceipt ? 'Notes' : isWaybill ? 'Instructions & terms' : isVoucher ? 'Purpose of payment' : isNote ? 'Reason & terms' : 'Notes & terms'}
               </h2>
               <Textarea
-                label={isWaybill ? 'Special instructions' : 'Notes'}
+                label={isWaybill ? 'Special instructions' : isVoucher ? 'Purpose of payment' : isNote ? (kind === 'credit-note' ? 'Reason for credit' : 'Reason for debit') : 'Notes'}
                 rows={3}
                 value={data.notes}
                 onChange={(v) => set('notes', v)}
-                placeholder={copy.notesPlaceholder}
+                placeholder={isWaybill ? 'e.g. Call the receiver before arrival. Handle with care.' : isVoucher ? 'e.g. Part payment for materials, invoice no. 8841.' : isNote ? 'e.g. Goods returned damaged, or extra work not billed before.' : isPO ? 'Anything the supplier should know about this order.' : 'A thank-you message or anything the customer should know.'}
               />
-              {copy.hasTerms && (
+              {!isReceipt && !isVoucher && (
                 <Textarea
                   label="Terms & conditions"
                   rows={3}
@@ -647,7 +639,7 @@ export function Editor({ kind, template }: { kind: DocKind; template?: TemplateI
               </div>
             ) : (
               <div>
-                <span>{isReceipt ? 'Amount received' : isInvoice && data.status === 'partial' ? 'Balance due' : 'Total'}</span>
+                <span>{isInvoice && data.status === 'partial' ? 'Balance due' : (TOTAL_LABEL[kind] ?? 'Total')}</span>
                 <b>{money(isInvoice && data.status === 'partial' ? totals.balance : totals.total)}</b>
               </div>
             )}

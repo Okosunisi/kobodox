@@ -1,208 +1,163 @@
-import { useEffect, useMemo, useState } from 'react';
-import { ArrowRight, Download, FileText, Lock, Receipt, ShieldCheck, Smartphone, Zap } from 'lucide-react';
-import type { DocKind, TemplateId } from '../types';
+import { useState } from 'react';
+import { ArrowRight, BarChart3, BookOpen, Check, FileText, Menu, X } from 'lucide-react';
+import type { DocKind } from '../types';
 import { KIND_COPY, KIND_ORDER } from '../lib/kinds';
-import { sampleDoc } from '../lib/sample';
-import { TEMPLATE_ORDER, THEMES } from '../lib/theme';
-import { InvoiceDocument } from './InvoiceDocument';
-import { ScaledPage } from './ScaledPage';
+import { naira, sampleExpenses, sampleSales, sumExpenses, totals } from '../lib/books';
 import { Brand } from './ui';
 
-/** Every document type except the two big buttons in the hero. */
-const MORE_KINDS = KIND_ORDER.filter((k) => k !== 'invoice' && k !== 'receipt');
+type Current = 'home' | 'sales' | 'reports' | DocKind;
 
-export function SiteHeader({ current }: { current: 'home' | DocKind }) {
-  // With nine document types the switcher scrolls sideways, so keep the current one in view.
-  useEffect(() => {
-    document.querySelector('.doc-switch a[aria-current="page"]')?.scrollIntoView({ inline: 'center', block: 'nearest' });
-  }, [current]);
+/** The three main sections. Business Documents opens the document maker (it has the switcher for every document type). */
+const SECTIONS = [
+  { label: 'Business Documents', href: '#/invoice' },
+  { label: 'Sales Management', href: '#/sales' },
+  { label: 'Business Reports', href: '#/reports' },
+] as const;
 
+export function SiteHeader({ current }: { current: Current }) {
+  const [open, setOpen] = useState(false);
+  const isDoc = current !== 'home' && current !== 'sales' && current !== 'reports';
+  const on = (href: string) => (href === '#/sales' ? current === 'sales' : href === '#/reports' ? current === 'reports' : isDoc);
   return (
     <header className="site-header">
       <div className="container bar">
-        <a href="#/" className="brand-link" aria-label="KoboDox home">
+        <a href="#/" className="brand-link" aria-label="KoboDox home" onClick={() => setOpen(false)}>
           <Brand />
         </a>
-        {current === 'home' ? (
-          <nav className="nav" aria-label="Main">
-            <button
-              type="button"
-              className="nav-link"
-              onClick={() => document.getElementById('how')?.scrollIntoView({ behavior: 'smooth' })}
-            >
-              How it works
-            </button>
-            <button
-              type="button"
-              className="nav-link"
-              onClick={() => document.getElementById('templates')?.scrollIntoView({ behavior: 'smooth' })}
-            >
-              Templates
-            </button>
-            <a className="btn ghost sm hide-xs" href="#/receipt">
-              Create Receipt
+        <nav className="top-links" aria-label="Main">
+          {SECTIONS.map((s) => (
+            <a key={s.href} href={s.href} className={on(s.href) ? 'on' : ''} aria-current={on(s.href) ? 'page' : undefined}>
+              {s.label}
             </a>
-            <a className="btn primary sm" href="#/invoice">
-              Create Invoice
-            </a>
-          </nav>
-        ) : (
-          <nav className="nav" aria-label="Document type">
-            <div className="segmented small doc-switch">
-              {KIND_ORDER.map((k) => (
-                <a key={k} href={`#/${KIND_COPY[k].path}`} className={current === k ? 'on' : ''} aria-current={current === k ? 'page' : undefined}>
-                  {KIND_COPY[k].Noun}
-                </a>
-              ))}
-            </div>
-          </nav>
-        )}
+          ))}
+        </nav>
+        <button type="button" className="menu-btn" aria-label={open ? 'Close menu' : 'Open menu'} aria-expanded={open} onClick={() => setOpen(!open)}>
+          {open ? <X size={22} /> : <Menu size={22} />}
+        </button>
       </div>
+      {open && (
+        <nav className="container mobile-menu" aria-label="Main">
+          {SECTIONS.map((s) => (
+            <a key={s.href} href={s.href} className={on(s.href) ? 'on' : ''} onClick={() => setOpen(false)}>
+              {s.label}
+            </a>
+          ))}
+        </nav>
+      )}
+      {isDoc && (
+        <div className="container doc-row">
+          <div className="segmented small doc-switch" aria-label="Document type">
+            {KIND_ORDER.map((k) => (
+              <a key={k} href={`#/${KIND_COPY[k].path}`} className={current === k ? 'on' : ''} aria-current={current === k ? 'page' : undefined}>
+                {KIND_COPY[k].Noun}
+              </a>
+            ))}
+          </div>
+        </div>
+      )}
     </header>
   );
 }
 
-export function Home() {
-  const [tpl, setTpl] = useState<TemplateId>('classic');
-  const heroDoc = useMemo(() => sampleDoc('invoice', tpl, 'unpaid'), [tpl]);
-  const classicDoc = useMemo(() => sampleDoc('invoice', 'classic', 'unpaid'), []);
-  const minimalDoc = useMemo(() => sampleDoc('invoice', 'minimal', 'unpaid'), []);
-  const boldDoc = useMemo(() => sampleDoc('invoice', 'bold', 'unpaid'), []);
-  const docs = { classic: classicDoc, minimal: minimalDoc, bold: boldDoc };
+const DOC_LINKS: DocKind[] = ['invoice', 'quotation', 'receipt', 'sales-order', 'purchase-order', 'payment-voucher', 'credit-note', 'debit-note', 'waybill'];
 
+const FEATURES = [
+  { icon: BookOpen, title: 'Sales Management', text: 'Record daily sales, track quantities sold, monitor payment methods, and easily find previous transactions.', button: 'Manage Sales', href: '#/sales' },
+  { icon: BarChart3, title: 'Business Reports', text: 'Review daily, weekly, and monthly sales, record business expenses, and understand how your business is performing.', button: 'View Business Reports', href: '#/reports' },
+  { icon: FileText, title: 'Business Documents', text: 'Create professional invoices, quotations, receipts, sales orders, purchase orders, payment vouchers, credit notes, debit notes, and waybills.', button: 'Create Documents', href: '#/invoice' },
+];
+
+const BENEFITS = [
+  'Keep daily sales organized.',
+  'Track recorded business spending.',
+  'Find previous transactions easily.',
+  'Compare sales across different periods.',
+  'Generate professional business documents.',
+  'Access useful business reports in one place.',
+];
+
+export function Home() {
+  // Demonstration figures, worked out from the built-in sample records. They are never saved and never reach real reports.
+  const demo = totals(sampleSales());
+  const preview: Array<[string, string]> = [
+    ["Today's Sales", naira(demo.total)],
+    ['Recorded Expenses', naira(sumExpenses(sampleExpenses()))],
+    ['Transactions', String(demo.count)],
+  ];
   return (
     <div className="app-shell home">
       <SiteHeader current="home" />
-
       <main>
-        <section className="hero">
-          <div className="container hero-grid">
-            <div className="hero-copy">
-              <span className="pill">
-                <Lock size={14} /> No account. No sign-up. 100% private.
-              </span>
-              <h1>
-                Professional Invoices. <span className="accent">Made Simple.</span>
-              </h1>
-              <p className="lead">Create beautiful invoices and receipts in seconds. No account required.</p>
-              <div className="cta-row">
-                <a className="btn primary lg" href="#/invoice">
-                  <FileText size={19} /> Create Invoice <ArrowRight size={18} />
-                </a>
-                <a className="btn outline lg" href="#/receipt">
-                  <Receipt size={19} /> Create Receipt
-                </a>
-              </div>
-              <p className="more-docs">
-                Also make a{' '}
-                {MORE_KINDS.map((k, i) => (
-                  <span key={k}>
-                    <a href={`#/${KIND_COPY[k].path}`}>{KIND_COPY[k].Noun}</a>
-                    {i < MORE_KINDS.length - 2 ? ', ' : i === MORE_KINDS.length - 2 ? ' or ' : ''}
+        <section className="hp-hero">
+          <div className="container">
+            <span className="pill">Simple bookkeeping for every business</span>
+            <h1>Keep Your Business Records in One Place.</h1>
+            <p className="lead">
+              Record your daily sales, track your business spending, and understand how your business is performing. Keep your transactions organized and create professional business documents whenever you need them.
+            </p>
+            <div className="hp-cta">
+              <a className="btn primary lg" href="#/sales">
+                Start Recording Sales <ArrowRight size={18} />
+              </a>
+              <a className="btn outline lg" href="#/invoice">
+                Explore Business Documents
+              </a>
+            </div>
+            <div className="hp-preview" aria-label="Sample business summary">
+              {preview.map(([k, v]) => (
+                <div key={k} className="hp-stat">
+                  <span>{k}</span>
+                  <b>{v}</b>
+                </div>
+              ))}
+            </div>
+            <p className="hp-note">Sample figures for demonstration only. They are not real records.</p>
+          </div>
+        </section>
+
+        <section className="hp-section">
+          <div className="container">
+            <h2>Everything Your Business Needs to Stay Organized</h2>
+            <div className="hp-features">
+              {FEATURES.map(({ icon: Icon, title, text, button, href }) => (
+                <div key={title} className="hp-feature">
+                  <span className="hp-icon" aria-hidden="true">
+                    <Icon size={22} />
                   </span>
-                ))}
-                .
-              </p>
-              <ul className="trust">
-                <li>
-                  <ShieldCheck size={17} /> Your data never leaves your device
-                </li>
-                <li>
-                  <Smartphone size={17} /> Works on phone, tablet and computer
-                </li>
-                <li>
-                  <Download size={17} /> Clean A4 PDF, ready to send
-                </li>
-              </ul>
-            </div>
-
-            <div className="hero-visual">
-              <div className="hero-glow" aria-hidden="true" />
-              <div className="hero-paper" aria-label="Preview of a professionally designed invoice">
-                <ScaledPage maxHeight={620}>
-                  <InvoiceDocument data={heroDoc} />
-                </ScaledPage>
-              </div>
-              <div className="hero-chips" role="tablist" aria-label="Preview a template">
-                {TEMPLATE_ORDER.map((id) => (
-                  <button key={id} type="button" role="tab" aria-selected={tpl === id} className={tpl === id ? 'on' : ''} onClick={() => setTpl(id)}>
-                    <i style={{ background: THEMES[id].accent }} aria-hidden="true" />
-                    {THEMES[id].name}
-                  </button>
-                ))}
-              </div>
+                  <h3>{title}</h3>
+                  <p>{text}</p>
+                  <a className="btn outline" href={href}>
+                    {button}
+                  </a>
+                </div>
+              ))}
             </div>
           </div>
         </section>
 
-        <section className="section" id="how">
+        <section className="hp-section alt" id="documents">
           <div className="container">
-            <div className="section-head">
-              <h2>How it works</h2>
-              <p>Three quick steps from blank page to a bill you're proud to send.</p>
-            </div>
-            <ol className="steps">
-              <li>
-                <span className="step-icon">
-                  <FileText size={22} />
-                </span>
-                <h3>1. Fill in the details</h3>
-                <p>Add your business, your customer and the items. Totals, discounts and tax are worked out for you.</p>
-              </li>
-              <li>
-                <span className="step-icon">
-                  <Zap size={22} />
-                </span>
-                <h3>2. Pick a template</h3>
-                <p>Switch between three professional designs and watch the invoice update instantly.</p>
-              </li>
-              <li>
-                <span className="step-icon">
-                  <Download size={22} />
-                </span>
-                <h3>3. Download, print or share</h3>
-                <p>Get a crisp A4 PDF, print it, or send it to your customer on WhatsApp.</p>
-              </li>
-            </ol>
-          </div>
-        </section>
-
-        <section className="section alt" id="templates">
-          <div className="container">
-            <div className="section-head">
-              <h2>Three designs. One look: professional.</h2>
-              <p>Pick the style that fits your brand. Tap a design to start with it.</p>
-            </div>
-            <div className="tpl-grid">
-              {TEMPLATE_ORDER.map((id) => (
-                <a key={id} className="tpl-card" href={`#/invoice?t=${id}`}>
-                  <div className="tpl-thumb">
-                    <ScaledPage maxHeight={360}>
-                      <InvoiceDocument data={docs[id]} />
-                    </ScaledPage>
-                  </div>
-                  <div className="tpl-meta">
-                    <strong>{THEMES[id].name}</strong>
-                    <span>{THEMES[id].tagline}</span>
-                  </div>
+            <h2>Create the Business Documents You Need</h2>
+            <div className="hp-docs">
+              {DOC_LINKS.map((k) => (
+                <a key={k} href={`#/${KIND_COPY[k].path}`}>
+                  <FileText size={16} aria-hidden="true" /> {KIND_COPY[k].Noun.replace(/\b\w/g, (c) => c.toUpperCase())}
                 </a>
               ))}
             </div>
           </div>
         </section>
 
-        <section className="section">
-          <div className="container final-cta">
-            <h2>Ready when you are.</h2>
-            <p>No account to create and nothing to install. Just open it and start.</p>
-            <div className="cta-row center">
-              <a className="btn primary lg" href="#/invoice">
-                Create Invoice <ArrowRight size={18} />
-              </a>
-              <a className="btn outline lg" href="#/receipt">
-                Create Receipt
-              </a>
-            </div>
+        <section className="hp-section">
+          <div className="container">
+            <h2>Run Your Business With Better Records</h2>
+            <ul className="hp-benefits">
+              {BENEFITS.map((b) => (
+                <li key={b}>
+                  <Check size={18} aria-hidden="true" /> {b}
+                </li>
+              ))}
+            </ul>
           </div>
         </section>
       </main>
@@ -211,22 +166,22 @@ export function Home() {
         <div className="container foot-grid">
           <div>
             <Brand small />
-            <p className="muted">Free invoices, receipts, quotations, orders, vouchers, credit and debit notes, and waybills for vendors, freelancers and small businesses.</p>
+            <p className="muted">Simple bookkeeping and record-keeping for small and large business owners.</p>
           </div>
           <div>
-            <strong>Create</strong>
-            {KIND_ORDER.map((k) => (
-              <a key={k} href={`#/${KIND_COPY[k].path}`}>
-                {KIND_COPY[k].Noun}
+            <strong>Sections</strong>
+            {SECTIONS.map((s) => (
+              <a key={s.href} href={s.href}>
+                {s.label}
               </a>
             ))}
           </div>
           <div>
             <strong>Privacy</strong>
-            <p className="muted">Everything is made in your browser. We don't collect, store or send your business or customer details.</p>
+            <p className="muted">Your business records belong to you. Every person can see only their own records.</p>
           </div>
         </div>
-        <div className="container foot-base">© {new Date().getFullYear()} KoboDox. Made for small businesses.</div>
+        <div className="container foot-base">© {new Date().getFullYear()} KoboDox. Simple bookkeeping for business owners.</div>
       </footer>
     </div>
   );

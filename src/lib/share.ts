@@ -1,7 +1,6 @@
 import type { DocData, Totals } from '../types';
 import { formatMoney } from './currency';
 import { formatDate } from './dates';
-import { KIND_COPY } from './kinds';
 
 /** Turns a phone number into the digits-only international format WhatsApp expects. */
 export function whatsappNumber(raw: string, currency: string): string {
@@ -34,27 +33,30 @@ export function defaultMessage(d: DocData, t: Totals): string {
     lines.push(`Total: ${formatMoney(t.total, d.currency)}`);
     if (d.dueDate) lines.push(`Valid until: ${formatDate(d.dueDate)}`);
     lines.push('Please let us know if you would like to go ahead.');
+  } else if (d.kind === 'purchase-order') {
+    lines.push(`Here is purchase order ${d.number} from ${biz || 'us'}.`);
+    lines.push(`Order total: ${formatMoney(t.total, d.currency)}`);
+    if (d.dueDate) lines.push(`Delivery date: ${formatDate(d.dueDate)}`);
+    lines.push('Please confirm that you received it.');
+  } else if (d.kind === 'sales-order') {
+    lines.push(`Here is sales order ${d.number} from ${biz || 'us'}.`);
+    lines.push(`Order total: ${formatMoney(t.total, d.currency)}`);
+    if (d.dueDate) lines.push(`Delivery date: ${formatDate(d.dueDate)}`);
+  } else if (d.kind === 'payment-voucher') {
+    lines.push(`Here is payment voucher ${d.number} from ${biz || 'us'}.`);
+    lines.push(`Amount paid: ${formatMoney(t.total, d.currency)}`);
+    if (d.reference.trim()) lines.push(`Reference: ${d.reference.trim()}`);
+  } else if (d.kind === 'credit-note' || d.kind === 'debit-note') {
+    const credit = d.kind === 'credit-note';
+    lines.push(`Here is ${credit ? 'credit' : 'debit'} note ${d.number} from ${biz || 'us'}.`);
+    lines.push(`${credit ? 'Total credit' : 'Total debit'}: ${formatMoney(t.total, d.currency)}`);
+    if (d.reference.trim()) lines.push(`Against invoice: ${d.reference.trim()}`);
   } else if (isInvoice) {
     const amount = d.status === 'partial' ? t.balance : t.total;
     const label = d.status === 'paid' ? 'Total' : d.status === 'partial' ? 'Balance due' : 'Amount due';
     lines.push(`Here is invoice ${d.number} from ${biz || 'us'}.`);
     lines.push(`${label}: ${formatMoney(amount, d.currency)}`);
     if (d.status !== 'paid' && d.dueDate) lines.push(`Due date: ${formatDate(d.dueDate)}`);
-  } else if (d.kind === 'sales-order' || d.kind === 'purchase-order') {
-    lines.push(`Here is ${KIND_COPY[d.kind].noun} ${d.number} from ${biz || 'us'}.`);
-    lines.push(`Order total: ${formatMoney(t.total, d.currency)}`);
-    if (d.dueDate) lines.push(`Delivery date: ${formatDate(d.dueDate)}`);
-    lines.push(d.kind === 'sales-order' ? 'Please confirm the order.' : 'Please confirm that you received this order.');
-  } else if (d.kind === 'payment-voucher') {
-    lines.push(`Here is payment voucher ${d.number} from ${biz || 'us'}.`);
-    lines.push(`Amount: ${formatMoney(t.total, d.currency)}`);
-    if (d.paymentMethod.trim()) lines.push(`Method: ${d.paymentMethod.trim()}`);
-  } else if (d.kind === 'credit-note' || d.kind === 'debit-note') {
-    const credit = d.kind === 'credit-note';
-    lines.push(`Here is ${credit ? 'credit' : 'debit'} note ${d.number} from ${biz || 'us'}.`);
-    lines.push(`${credit ? 'Credit' : 'Amount due'}: ${formatMoney(t.total, d.currency)}`);
-    if (d.reference.trim()) lines.push(`Related invoice: ${d.reference.trim()}`);
-    if (!credit && d.dueDate) lines.push(`Due date: ${formatDate(d.dueDate)}`);
   } else {
     lines.push(`Here is your receipt ${d.number} from ${biz || 'us'}.`);
     lines.push(`Amount received: ${formatMoney(t.total, d.currency)}`);

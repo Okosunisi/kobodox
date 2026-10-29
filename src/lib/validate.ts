@@ -1,7 +1,7 @@
 import type { DocData, FieldErrors } from '../types';
 import { computeTotals, isValidNumber, parseNum, toCents } from './calc';
 import { parseISO } from './dates';
-import { KIND_COPY } from './kinds';
+import { DUE_LABEL, KIND_COPY } from './kinds';
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 const MAX_QTY = 1_000_000;
@@ -17,17 +17,35 @@ export function validate(d: DocData): FieldErrors {
   const e: FieldErrors = {};
   const isInvoice = d.kind === 'invoice';
   const isWaybill = d.kind === 'waybill';
-  const copy = KIND_COPY[d.kind];
+  const isQuote = d.kind === 'quotation';
 
   if (!d.businessName.trim()) e.businessName = isWaybill ? 'Enter the sender or business name.' : 'Enter your business name.';
-  if (!d.customerName.trim()) e.customerName = copy.partyError;
-  if (!d.number.trim()) e.number = `Enter ${/^[aeiou]/.test(copy.noun) ? 'an' : 'a'} ${copy.noun} number.`;
+  if (!d.customerName.trim()) {
+    e.customerName = isWaybill
+      ? 'Enter the receiver name.'
+      : d.kind === 'purchase-order'
+        ? 'Enter the supplier name.'
+        : d.kind === 'payment-voucher'
+          ? 'Enter who is being paid.'
+          : d.kind === 'receipt'
+            ? 'Enter who the payment was received from.'
+            : 'Enter the customer name.';
+  }
+  if (!d.number.trim()) {
+    const noun = KIND_COPY[d.kind].noun;
+    e.number = `Enter ${/^[aeiou]/i.test(noun) ? 'an' : 'a'} ${noun} number.`;
+  }
 
   if (!parseISO(d.issueDate)) e.issueDate = 'Pick a valid date.';
-  if (copy.due) {
-    if (!parseISO(d.dueDate)) e.dueDate = `Pick a valid ${copy.due.what}.`;
+  if (DUE_LABEL[d.kind]) {
+    const what = isQuote ? 'valid-until date' : isInvoice ? 'due date' : 'delivery date';
+    if (!parseISO(d.dueDate)) e.dueDate = `Pick a valid ${what}.`;
     else if (parseISO(d.issueDate) && d.dueDate < d.issueDate) {
-      e.dueDate = `The ${copy.due.what} cannot be before the ${copy.dateLabel.toLowerCase()}.`;
+      e.dueDate = isQuote
+        ? 'The valid-until date cannot be before the issue date.'
+        : isInvoice
+          ? 'Due date cannot be before the issue date.'
+          : 'The delivery date cannot be before the order date.';
     }
   }
 

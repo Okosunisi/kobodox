@@ -1,6 +1,6 @@
 import type { DocData, LineItem, SummaryRow, Totals } from '../types';
 import { formatQty } from './currency';
-import { KIND_COPY } from './kinds';
+import { TOTAL_LABEL } from './kinds';
 
 /** Parses user input such as "1,500.50" into a number. Invalid input becomes 0. */
 export function parseNum(s: string): number {
@@ -97,7 +97,7 @@ export function buildSummary(d: DocData, t: Totals): SummaryRow[] {
   });
 
   if (d.kind !== 'invoice') {
-    rows.push({ kind: 'grand', label: KIND_COPY[d.kind].grandLabel, amount: t.total });
+    rows.push({ kind: 'grand', label: TOTAL_LABEL[d.kind] ?? 'Total', amount: t.total });
   } else if (d.status === 'paid') {
     rows.push({ kind: 'grand', label: 'Total paid', amount: t.total });
   } else if (d.status === 'partial') {
@@ -140,8 +140,8 @@ export function statusLabel(d: DocData): string {
   if (d.kind === 'waybill') {
     return d.shipmentStatus === 'delivered' ? 'DELIVERED' : d.shipmentStatus === 'in-transit' ? 'IN TRANSIT' : 'PENDING';
   }
-  if (d.kind !== 'invoice' && d.kind !== 'receipt') return ''; // only invoices and receipts carry a payment status
   if (d.kind === 'receipt') return 'PAID';
+  if (d.kind !== 'invoice') return ''; // only invoices (and receipts) show a payment status
   if (d.status === 'paid') return 'PAID';
   if (d.status === 'partial') return 'PARTIALLY PAID';
   return 'UNPAID';

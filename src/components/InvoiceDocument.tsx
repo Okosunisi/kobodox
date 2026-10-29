@@ -136,7 +136,7 @@ export function InvoiceDocument({ data }: { data: DocData }) {
   const hasTerms = !!model.terms;
 
   return (
-    <article className={`doc tpl-${data.template}${model.title.length > 11 ? ' long-title' : ''}`} data-kind={data.kind} style={vars}>
+    <article className={`doc tpl-${data.template}`} data-kind={data.kind} data-longtitle={model.title.length > 9 ? 'true' : undefined} style={vars}>
       {header}
 
       <section className="parties">
